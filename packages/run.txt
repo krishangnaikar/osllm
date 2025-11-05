@@ -1,0 +1,5 @@
+sudo apt-get update && sudo apt-get install -y strace smartmontools
+pip install fastmcp psutil pydantic
+ollama run llama3.1
+pip install ollama psutil pydantic
+python ollama_agent.py
