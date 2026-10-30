@@ -418,15 +418,17 @@ def trace_syscalls(
                     # End of table
                     break
                 parts = line.strip().split()
-                if len(parts) >= 6:
-                    # Join the syscall name (rest of the line) because it may include spaces on exotic systems
-                    syscall = parts[5]
+                if parts and parts[-1] == "total":
+                    break
+                if len(parts) in (5, 6):
+                    # strace leaves the errors column blank for successful calls.
+                    syscall = parts[-1]
                     row = {
                         "% time": parts[0],
                         "seconds": parts[1],
                         "usecs/call": parts[2],
                         "calls": parts[3],
-                        "errors": parts[4],
+                        "errors": parts[4] if len(parts) == 6 else "0",
                         "syscall": syscall,
                     }
                     table.append(row)
