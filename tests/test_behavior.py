@@ -33,3 +33,27 @@ def test_top_processes_sort_by_memory_and_limit(tools, monkeypatch):
     result = tools.get_top_impl('mem',1)
     assert len(result) == 1
     assert (result[0].pid,result[0].rss_mb) == (2,30)
+
+@pytest.mark.parametrize('row,errors', [
+    ('89.76 0.008016 4 1912 getdents', '0'),
+    ('0.00 0.000000 0 3 3 access', '3'),
+])
+def test_trace_summary_preserves_calls_with_or_without_errors(tools, monkeypatch, row, errors):
+    import io
+    # Classic -c layout: https://strace.io/ (Count time, calls, and errors).
+    # Fixture is synthetic; no live tracing or privileged process is launched.
+    summary = ('% time seconds usecs/call calls errors syscall\n'
+               '------ ----------- ----------- --------- --------- ----------------\n'
+               + row + '\n'
+               '100.00 0.008930 25440 3 total\n')
+    process = MagicMock()
+    process.stderr = io.StringIO(summary)
+    monkeypatch.setattr(tools, '_require_tool', lambda name: None)
+    monkeypatch.setattr(tools.subprocess, 'Popen', lambda *args, **kwargs: process)
+    result = tools.trace_syscalls(pid=123, duration_s=1)
+    assert len(result.summary_table) == 1
+    assert result.summary_table[0] == {
+        '% time': row.split()[0], 'seconds': row.split()[1],
+        'usecs/call': row.split()[2], 'calls': row.split()[3],
+        'errors': errors, 'syscall': row.split()[-1],
+    }
