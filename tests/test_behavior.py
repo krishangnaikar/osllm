@@ -57,3 +57,20 @@ def test_trace_summary_preserves_calls_with_or_without_errors(tools, monkeypatch
         'usecs/call': row.split()[2], 'calls': row.split()[3],
         'errors': errors, 'syscall': row.split()[-1],
     }
+
+def test_trace_summary_survives_large_command_stdout(tools, monkeypatch):
+    import subprocess
+
+    launch = subprocess.Popen
+    child = (
+        "import sys; sys.stdout.buffer.write(b'x' * 1048576); sys.stdout.flush(); "
+        "sys.stderr.write('% time seconds usecs/call calls errors syscall\\n"
+        "100.00 0.000001 1 1 read\\n')"
+    )
+    def launch_fixture(cmd, **kwargs):
+        return launch([sys.executable, '-c', child], **kwargs)
+
+    monkeypatch.setattr(tools, '_require_tool', lambda name: None)
+    monkeypatch.setattr(tools.subprocess, 'Popen', launch_fixture)
+    result = tools.trace_syscalls(command='fixture', duration_s=2)
+    assert [row['syscall'] for row in result.summary_table] == ['read']
