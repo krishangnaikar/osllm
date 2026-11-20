@@ -388,7 +388,7 @@ def trace_syscalls(
 
         # Use timeout to stop after duration_s
         try:
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
             try:
                 proc.wait(timeout=duration_s)
             except subprocess.TimeoutExpired:
